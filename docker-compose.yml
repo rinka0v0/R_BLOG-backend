@@ -1,0 +1,53 @@
+version: '3'
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mysql_host
+    env_file: ./mysql/mysql.env
+    environment:
+      - TZ=Asia/Tokyo
+    ports:
+      - '3306:33060'
+    volumes:
+      - ./mysql/conf:/etc/mysql/conf.d/myconf
+      - mysqldata:/var/lib/mysql
+    networks:
+      - default
+
+  phpmyadmin:
+    container_name: test_phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOSTS=mysql_host
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+    ports:
+      - 8080:80
+    networks:
+     - default
+     
+  app:
+    image: node:14
+    env_file: ./app.env
+    container_name: api 
+    environment:
+      - TZ=Asia/Tokyo
+      - DEBUG=app:*
+    tty: true
+    stdin_open: true
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./src:/app
+    working_dir: /app
+    command: npm start
+    networks:
+      - default
+    depends_on:
+      - mysql
+networks:
+  default:
+# コンテナが削除されてもデータが消えずに保持される
+volumes:
+ mysqldata:
