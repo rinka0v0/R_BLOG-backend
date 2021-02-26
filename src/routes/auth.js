@@ -17,31 +17,50 @@ const con = mysql.createConnection({
 });
 
 // 新規アカウント作成の処理
-router.post('/signup', function(req, res) {
+router.post('/signup', (req, res) => {
     const user_name = req.body.name;
     const password = req.body.password;
-    const sql = `INSERT INTO user (name, password, created) VALUES(${user_name}, ${password}, NOW())`;
+    const sql = "INSERT INTO user (name, password) VALUES (?, ?)";
+    con.connect((err) => {
+        con.query(sql, [user_name, password], (err, result, fields) => {
+            // jwt発行
+            const payload = {
+                user_id: result.insertId
+            };
+            const option = {
+                expiresIn: '24h'
+            };
+            jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
+                res.status(200).json({
+                    token: token
+                });
+            });
+        });
+    });
+});
 
-    // // データーベースへ接続
-    con.connect(function(err) {
-        con.query(sql, (err, results, fields) => {
-            if(!err) {
+// ログイン処理
+router.post('/login', (req, res) => {
+    const user_name = req.body.name;
+    const password = req.body.password;
+    const sql = "SELECT * FROM user WHERE name=? AND password=?";
+    con.connect((err) => {
+        con.query(sql,[user_name,password],(err, result, fields) => {
+            if(!result.length) {
                 res.json({
-                    message: 'error'
-                })
+                    message: 'not found account!!'
+                });
             } else {
                 // jwt発行
                 const payload = {
-                    user_name: req.body.name
+                    user_id: result[0].id
                 };
                 const option = {
                     expiresIn: '24h'
                 };
                 jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
                     res.status(200).json({
-                        message: 'token created!',
-                        // user_id: results.insertId,
-                        name: user_name,
+                        user_id: result[0].id,
                         token: token
                     });
                 });
