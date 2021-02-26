@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { route } = require('.');
-const app = require('../app');
 const mysql = require('mysql');
 const { json } = require('express');
 
@@ -21,7 +20,7 @@ const con = mysql.createConnection({
 router.post('/signup', function(req, res) {
     const user_name = req.body.name;
     const password = req.body.password;
-    const sql = `INSERT INTO users (name, password, created) VALUES(${user_name}, ${password}, NOW())`;
+    const sql = `INSERT INTO user (name, password, created) VALUES(${user_name}, ${password}, NOW())`;
 
     // // データーベースへ接続
     con.connect(function(err) {
@@ -41,6 +40,7 @@ router.post('/signup', function(req, res) {
                 jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
                     res.status(200).json({
                         message: 'token created!',
+                        // user_id: results.insertId,
                         name: user_name,
                         token: token
                     });
@@ -60,7 +60,7 @@ const auth = (req, res, next) => {
                 message: 'No token provided'
             });
         }
-
+    //トークンの検証
     jwt.verify(token, PRIVATE_KEY, function(err, decoded) {
         if (err) {
             return res.json({
@@ -73,23 +73,44 @@ const auth = (req, res, next) => {
     });
 };
 
+// jwt確認用
 router.get('/user',auth,(req, res) => {
     res.json({
         message: `your name is ${req.decoded.user_name}`
     });
 });
 
-// router.get('/user', function(req, res, next) {
-//     // MYSQLへの接続
-//     con.connect(function(err) {
-//         const sql = "select * from users";
-//         con.query(sql, function (err, result, fields) {  
-//         res.json({
-//             result: result,
-//             message: req.decoded.name
-//         });
-//         });
-//     });
-// });
+// 記事を投稿する処理
+router.post('/post',auth,(req, res) => {
+    const data = JSON.stringify(req.body.data);
+    const sql = `INSERT INTO blog (title, body, user_id) VALUES (${req.body.title}, ${data}, 1)`;
+    con.connect((err) => {
+        con.query(sql, (err, result, fields) => {
+            if(err) {
+                res.json({
+                    message: 'error'
+                }); 
+            } else {
+                res.json({
+                    result: result
+                });
+            }
+        });
+    });
+});
+
+// 記事を取り出す処理
+router.get('/blogs',auth, (req, res) => {
+    con.connect((err) => {
+        const sql = "SELECT * FROM blog";  //個数に制限なし
+        con.query(sql, (err, result, fields) => {
+            const data = JSON.parse(result[0].body);
+            res.json({
+                results: result[0],
+                data: data
+            });
+        });
+    });
+});
 
 module.exports = router;
