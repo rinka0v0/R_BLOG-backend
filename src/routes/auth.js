@@ -5,25 +5,6 @@ const { route } = require('.');
 const mysql = require('mysql');
 const { json } = require('express');
 
-// const cors = require('cors');
-// app.use(cors());
-
-// const allowCrossDomain = function(req, res, next) {
-//   res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
-//   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-//   res.header('Access-Control-Allow-Credentials','true');
-//   res.header('Access-Control-Allow-Headers','Content-Type, Authorization, access_token, Origin');
-//   next();
-// //   intercept OPTIONS method
-//   if ('OPTIONS' === req.method) {
-//     res.send(200);
-//   } else {
-//     next();
-//   }
-// }
-// app.use(allowCrossDomain);
-
-
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
@@ -39,22 +20,33 @@ const con = mysql.createConnection({
 router.post('/signup', (req, res) => {
     const user_name = req.body.name;
     const password = req.body.password;
-    const sql = "INSERT INTO user (name, password) VALUES (?, ?)";
+    
     con.connect((err) => {
-        con.query(sql, [user_name, password], (err, result, fields) => {
-            // jwt発行
-            const payload = {
-                user_id: result.insertId
-            };
-            const option = {
-                expiresIn: '24h'
-            };
-            jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
-                res.status(200).json({
-                    token: token
+        const selectSql = "SELECT * FROM user WHERE name = ?";
+        con.query(selectSql, [user_name], (err, result, fields) => {
+            if(result.length) {
+                res.status(422).json({
+                    error: 'alredy exist!'
                 });
-            });
-        });
+            } else {
+                const insertSql = "INSERT INTO user (name, password) VALUES (?, ?)";
+                con.query(insertSql, [user_name, password], (err, result, fields) => {
+                    // jwt発行
+                    const payload = {
+                        user_id: result.insertId
+                    };
+                    const option = {
+                        expiresIn: '24h'
+                    };
+                    jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
+                        res.cookie('token', token, { httpOnly: true });
+                        res.status(200).json({
+                        user_id: result.insertId,
+                        });
+                    });
+                });
+            }
+        })
     });
 });
 
@@ -67,7 +59,7 @@ router.post('/login', (req, res) => {
         con.query(sql,[user_name,password],(err, result, fields) => {
             if(!result.length) {
                 res.json({
-                    message: 'not found account!!'
+                    error: 'not found account!!'
                 });
             } else {
                 // jwt発行
@@ -78,9 +70,9 @@ router.post('/login', (req, res) => {
                     expiresIn: '24h'
                 };
                 jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
+                    res.cookie('token', token, { httpOnly: true });
                     res.status(200).json({
                         user_id: result[0].id,
-                        token: token
                     });
                 });
             }
@@ -88,34 +80,42 @@ router.post('/login', (req, res) => {
     });
 });
 
-// 確認用ミドルウェア
+// token確認ミドルウェア
 const auth = (req, res, next) => {
-    let token = "";
-    if(req.headers.authorization && req.headers.authorization.split(' ')[0] === "Bearer") {
-           token = req.headers.authorization.split(' ')[1];
-        } else { 
-            return res.status(403).json({
-                message: 'No token provided'
-            });
-        }
-    //トークンの検証
-    jwt.verify(token, PRIVATE_KEY, function(err, decoded) {
-        if (err) {
-            return res.json({
-                message: 'Invalid token'
-            });
-        } else {
-            req.decoded = decoded;
-            next();
-        }
-    });
-};
+    const token = req.cookies.token;
+    if(token) {
+        //トークンの検証
+        jwt.verify(token, PRIVATE_KEY, function(err, decoded) {
+            if (err) {
+                return res.status(403).json({
+                    error: 'Invalid token'
+                });
+            } else {
+                req.decoded = decoded;
+                next();
+            }
+        });
+    } else {
+        return res.json({
+            error: 'No token provided'
+        });
+    }
+}
 
 // jwt確認用
-router.get('/user',auth,(req, res) => {
+router.get('/me',auth,(req, res) => {
     res.json({
-        message: `your name is ${req.decoded.user_name}`
+        message: `your id is ${req.decoded.user_id}`,
+        user_id: req.decoded.user_id
     });
+});
+
+//ログアウトの処理
+router.get('/logout', auth, (req, res) => {
+    res.clearCookie('token');
+    res.json({
+        message: 'logout!!'
+    })
 });
 
 // 記事を投稿する処理
