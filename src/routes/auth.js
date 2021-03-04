@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { route } = require('.');
 const mysql = require('mysql');
 const { json } = require('express');
+const cookie = require('cookie');
 
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -70,7 +71,7 @@ router.post('/login', (req, res) => {
                     expiresIn: '24h'
                 };
                 jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
-                    res.cookie('token', token, { httpOnly: true });
+                    res.cookie('token', token, { httpOnly: true});
                     res.status(200).json({
                         user_id: result[0].id,
                     });
