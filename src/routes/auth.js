@@ -39,6 +39,7 @@ router.post('/signup', (req, res) => {
                         expiresIn: '24h'
                     };
                     jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
+                        res.setHeader()
                         res.cookie('token', token, { httpOnly: true });
                         res.status(200).json({
                         user_id: result.insertId,
@@ -50,6 +51,13 @@ router.post('/signup', (req, res) => {
     });
 });
 
+router.get('/test', (req, res) => {
+    res.cookie('token', 'test-test', {httpOnly: true});
+    res.json({
+        message: 'OK!'
+    })
+})
+
 // ログイン処理
 router.post('/login', (req, res) => {
     const user_name = req.body.name;
@@ -58,7 +66,7 @@ router.post('/login', (req, res) => {
     con.connect((err) => {
         con.query(sql,[user_name,password],(err, result, fields) => {
             if(!result.length) {
-                res.json({
+                res.status(422).json({
                     error: 'not found account!!'
                 });
             } else {
@@ -67,12 +75,13 @@ router.post('/login', (req, res) => {
                     user_id: result[0].id
                 };
                 const option = {
-                    expiresIn: '24h'
+                    expiresIn: '1h'
                 };
                 jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
+                    // res.cookie('token', token, { httpOnly: true });
                     res.cookie('token', token, { httpOnly: true });
-                    res.status(200).json({
-                        user_id: result[0].id,
+                    res.json({
+                        user_id: result[0].id
                     });
                 });
             }
@@ -96,7 +105,7 @@ const auth = (req, res, next) => {
             }
         });
     } else {
-        return res.json({
+        return res.json({ //404
             error: 'No token provided'
         });
     }
@@ -130,7 +139,8 @@ router.post('/post',auth,(req, res) => {
                 }); 
             } else {
                 res.json({
-                    result: result
+                    result: result,
+                    user_id: req.decoded.user_id
                 });
             }
         });
@@ -145,7 +155,8 @@ router.get('/blogs',auth, (req, res) => {
             const data = JSON.parse(result[0].body);
             res.json({
                 results: result[0],
-                data: data
+                data: data,
+                user_id: req.decoded.user_id
             });
         });
     });
