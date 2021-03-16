@@ -21,7 +21,6 @@ const con = mysql.createConnection({
 router.post('/signup', (req, res) => {
     const user_name = req.body.name;
     const password = req.body.password;
-    
     con.connect((err) => {
         const selectSql = "SELECT * FROM user WHERE name = ?";
         con.query(selectSql, [user_name], (err, result, fields) => {
@@ -59,7 +58,7 @@ router.post('/login', (req, res) => {
     con.connect((err) => {
         con.query(sql,[user_name,password],(err, result, fields) => {
             if(!result.length) {
-                res.json({
+                res.status(404).json({
                     error: 'not found account!!'
                 });
             } else {
@@ -68,7 +67,7 @@ router.post('/login', (req, res) => {
                     user_id: result[0].id
                 };
                 const option = {
-                    expiresIn: '24h'
+                    expiresIn: '1h'
                 };
                 jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
                     res.cookie('token', token, { httpOnly: true});
@@ -97,15 +96,15 @@ const auth = (req, res, next) => {
             }
         });
     } else {
-        return res.json({
-            error: 'No token provided'
+        return res.status(404).json(null).json({
+            error: 'Not provided token!'
         });
     }
 }
 
-// jwt確認用
+// ユーザー情報確認
 router.get('/me',auth,(req, res) => {
-    res.json({
+    res.status(200).json({
         message: `your id is ${req.decoded.user_id}`,
         user_id: req.decoded.user_id
     });
@@ -114,20 +113,19 @@ router.get('/me',auth,(req, res) => {
 //ログアウトの処理
 router.get('/logout', auth, (req, res) => {
     res.clearCookie('token');
-    res.json({
+    res.status(200).json({
         message: 'logout!!'
     })
 });
 
 // 記事を投稿する処理
 router.post('/post',auth,(req, res) => {
-    const data = JSON.stringify(req.body.data);
-    const sql = `INSERT INTO blog (title, body, user_id) VALUES (${req.body.title}, ${data}, 1)`;
+    const sql = `INSERT INTO blog (title, body, user_id) VALUES (?, ?, ?)`;
     con.connect((err) => {
-        con.query(sql, (err, result, fields) => {
+        con.query(sql,[req.body.title, req.body.data, req.decoded.user_id] ,(err, result, fields) => {
             if(err) {
                 res.json({
-                    message: 'error'
+                    error: 'failed post'
                 }); 
             } else {
                 res.json({
@@ -139,17 +137,32 @@ router.post('/post',auth,(req, res) => {
 });
 
 // 記事を取り出す処理
-router.get('/blogs',auth, (req, res) => {
+router.get('/blogs', (req, res) => {
     con.connect((err) => {
-        const sql = "SELECT * FROM blog";  //個数に制限なし
+        const sql = "SELECT * FROM blog";  
         con.query(sql, (err, result, fields) => {
-            const data = JSON.parse(result[0].body);
             res.json({
-                results: result[0],
-                data: data
+                results: result
             });
         });
     });
 });
+
+router.get('/blogs/:id', (req, res) => {
+    con.connect((err) => {
+        const sql = "SELECT * FROM blog WHERE id=?"
+        con.query(sql,[req.params.id], (err,result, fields) => {
+            if(!result.length) {
+                res.status(404).json({
+                    error: 'not found article!!'
+                });
+            }else {
+                res.json({
+                    results: result
+                });
+            }
+        })
+    })
+})
 
 module.exports = router;
