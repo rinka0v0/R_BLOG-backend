@@ -136,10 +136,10 @@ router.post('/post',auth,(req, res) => {
     });
 });
 
-// 記事を取り出す処理
+// 記事を全て取り出す処理
 router.get('/blogs', (req, res) => {
     con.connect((err) => {
-        const sql = "SELECT * FROM blog";  
+        const sql = "SELECT blog.id, title, body, name FROM blog, user WHERE blog.user_id=user.id";  
         con.query(sql, (err, result, fields) => {
             res.json({
                 results: result
@@ -148,6 +148,7 @@ router.get('/blogs', (req, res) => {
     });
 });
 
+// 記事を1つ取り出す処理
 router.get('/blogs/:id', (req, res) => {
     con.connect((err) => {
         const sql = "SELECT * FROM blog WHERE id=?"
@@ -157,12 +158,33 @@ router.get('/blogs/:id', (req, res) => {
                     error: 'not found article!!'
                 });
             }else {
-                res.json({
+                res.status(200).json({
                     results: result
                 });
             }
         })
     })
 })
+
+// 記事を削除する処理
+router.get('/delete/:id' , auth, (req, res) => {
+    con.connect((err) => {
+        const sql = "DELETE FROM blog WHERE id=?";
+        con.query(sql,[req.params.id] ,(err, result ,fields) => {
+            res.status(200).json({
+                message: 'deleted!'
+            });
+            // if(result.length) {
+            //     res.status(404).json({
+            //         error: 'not found article!'
+            //     });
+            // } else {
+            //     res.json({
+            //         result: result
+            //     });
+            // }
+        });
+    });
+});
 
 module.exports = router;
