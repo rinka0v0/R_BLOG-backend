@@ -136,10 +136,46 @@ router.post('/post',auth,(req, res) => {
     });
 });
 
+// コメントを投稿する処理
+router.post('/postComment' , auth, (req, res) => {
+    const sql = `INSERT INTO comment ( text, user_id, blog_id) VALUES ( ?, ?, ?)`;
+    con.connect((err) => {
+        con.query(sql,[req.body.text, req.decoded.user_id, req.body.blog_id] ,(err, result, fields) => {
+            if(err) {
+                res.json({
+                    error: 'failed post'
+                }); 
+            } else {
+                res.json({
+                    result: result
+                });
+            }
+        });
+    });
+})
+
+// コメントを取り出す処理  
+router.get('/comment/:id', (req, res) => {
+    con.connect((err) => {
+        const sql = "SELECT * FROM comment WHERE blog_id=?"
+        con.query(sql,[req.params.id], (err,result, fields) => {
+            if(!result.length) {
+                res.status(404).json({
+                    error: 'not found article!!'
+                });
+            }else {
+                res.status(200).json({
+                    results: result
+                });
+            }
+        })
+    })
+})
+
 // 記事を全て取り出す処理
 router.get('/blogs', (req, res) => {
     con.connect((err) => {
-        const sql = "SELECT blog.id, title, body, name FROM blog, user WHERE blog.user_id=user.id";  
+        const sql = "SELECT blog.id, title, body, name FROM blog, user WHERE blog.user_id=user.id ORDER BY id DESC";  
         con.query(sql, (err, result, fields) => {
             res.json({
                 results: result
@@ -174,15 +210,6 @@ router.get('/delete/:id' , auth, (req, res) => {
             res.status(200).json({
                 message: 'deleted!'
             });
-            // if(result.length) {
-            //     res.status(404).json({
-            //         error: 'not found article!'
-            //     });
-            // } else {
-            //     res.json({
-            //         result: result
-            //     });
-            // }
         });
     });
 });
