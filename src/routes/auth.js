@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const { route } = require('.');
 const mysql = require('mysql');
 const { json } = require('express');
 const cookie = require('cookie');
@@ -10,11 +9,11 @@ const cookie = require('cookie');
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 const con = mysql.createConnection({
-    host: 'mysql_host',
-    user: 'root',
-    password: 'root',
-    port: '3306',
-    database: 'mysql_dev'
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    port: process.env.MYSQL_PORT,
+    database: process.env.MYSQL_DATABASE
 });
 
 // 新規アカウント作成の処理
