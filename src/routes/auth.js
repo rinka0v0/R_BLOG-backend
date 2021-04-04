@@ -157,7 +157,7 @@ router.post('/postComment' , auth, (req, res) => {
 // コメントを取り出す処理  
 router.get('/comment/:id', (req, res) => {
     con.connect((err) => {
-        const sql = "SELECT * FROM comment WHERE blog_id=?"
+        const sql = "SELECT  comment.id,comment.user_id ,text,comment.created , name FROM comment , user WHERE comment.blog_id=? AND comment.user_id=user.id"
         con.query(sql,[req.params.id], (err,result, fields) => {
             if(!result.length) {
                 res.status(404).json({
@@ -172,10 +172,28 @@ router.get('/comment/:id', (req, res) => {
     })
 })
 
+//コメントを削除する処理  
+router.delete('/comment',auth, (req, res) => {
+    con.connect((err) => {
+        const sql = "DELETE FROM comment WHERE id=?"
+        con.query(sql ,[req.body.id], (err,result, fields) => {
+            if(result.affectedRows === 0) {
+                res.status(404).json({
+                    error: 'not found comment!!'
+                });
+            } else {
+                res.status(200).json({
+                    message: "delete!!"
+                })
+            }
+        })
+    })
+})
+
 // 記事を全て取り出す処理
 router.get('/blogs', (req, res) => {
     con.connect((err) => {
-        const sql = "SELECT blog.id, title, body, name FROM blog, user WHERE blog.user_id=user.id ORDER BY id DESC";  
+        const sql = "SELECT blog.id, title, body, name FROM blog, user WHERE blog.user_id=user.id ORDER BY id DESC";
         con.query(sql, (err, result, fields) => {
             res.json({
                 results: result
