@@ -6,8 +6,6 @@ const logger = require('morgan');
 const authRouter = require('./routes/auth');
 const app = express();
 
-
-
 const allowCrossDomain = function(req, res, next) {
   res.header('Access-Control-Allow-Origin', process.env.APP_URL);
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
