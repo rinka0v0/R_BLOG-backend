@@ -5,6 +5,7 @@ const mysql = require('mysql');
 const { json } = require('express');
 const cookie = require('cookie');
 
+
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 

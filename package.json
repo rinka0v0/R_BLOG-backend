@@ -1,0 +1,11 @@
+{
+    "name": "r_blog_backend",
+    "version": "1.0.0",
+    "scripts": {
+      "start": "node src/bin/www",
+      "heroku-postbuild": "npm i --prefix=src"
+    },
+    "engines": {
+      "node": "12.x"
+    }
+}
