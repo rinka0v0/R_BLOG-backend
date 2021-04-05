@@ -8,7 +8,7 @@ const cookie = require('cookie');
 
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-
+// MYSQLに接続
 const con = mysql.createConnection({
     host: process.env.MYSQL_HOST,
     user: process.env.MYSQL_USER,
