@@ -5,13 +5,12 @@ const mysql = require('mysql');
 const { json } = require('express');
 const cookie = require('cookie');
 
-// const  cors = require('cors');
-// const corsOptions = {
-//   origin: process.env.APP_URL,
-//   credentials: true
-// }
-// router.use(cors(corsOptions));
-
+const  cors = require('cors');
+const corsOptions = {
+  origin: process.env.APP_URL,
+  credentials: true
+}
+router.use(cors(corsOptions));
 
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
