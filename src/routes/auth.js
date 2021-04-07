@@ -5,6 +5,13 @@ const mysql = require('mysql');
 const { json } = require('express');
 const cookie = require('cookie');
 
+// const  cors = require('cors');
+// const corsOptions = {
+//   origin: process.env.APP_URL,
+//   credentials: true
+// }
+// router.use(cors(corsOptions));
+
 
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -51,7 +58,7 @@ router.post('/signup', (req, res) => {
 });
 
 // ログイン処理
-router.post('/login' ,(req, res) => {
+router.post('/login',(req, res) => {
     const user_name = req.body.name;
     const password = req.body.password;
     const sql = "SELECT * FROM user WHERE name=? AND password=?";
