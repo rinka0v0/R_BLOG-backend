@@ -4,6 +4,14 @@ const jwt = require("jsonwebtoken");
 const mysql = require('mysql');
 const { json } = require('express');
 const cookie = require('cookie');
+const app = express();
+
+const  cors = require('cors');
+const corsOptions = {
+  "origin": "http://localhost:3001",
+  "credentials": true
+}
+app.use(cors(corsOptions));
 
 
 // 鍵の設定
