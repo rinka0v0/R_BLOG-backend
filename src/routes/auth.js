@@ -51,7 +51,7 @@ router.post('/signup', (req, res) => {
 });
 
 // ログイン処理
-router.post('/login', (req, res) => {
+router.post('/login' ,(req, res) => {
     const user_name = req.body.name;
     const password = req.body.password;
     const sql = "SELECT * FROM user WHERE name=? AND password=?";
