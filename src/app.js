@@ -5,15 +5,15 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const authRouter = require('./routes/auth');
 const indexRouter = require('./routes/index');
-const app = express();
+
 const  cors = require('cors');
+
+const app = express();
 const corsOptions = {
   origin: process.env.APP_URL,
   credentials: true
 }
 app.use(cors(corsOptions));
-
-
 
 // const allowCrossDomain = function(req, res, next) {
 //   res.header('Access-Control-Allow-Origin', process.env.APP_URL);
