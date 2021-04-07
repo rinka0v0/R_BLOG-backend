@@ -13,7 +13,6 @@ const corsOptions = {
   credentials: true
 }
 
-// app.use(cors(corsOptions));
 
 
 // const allowCrossDomain = function(req, res, next) {
