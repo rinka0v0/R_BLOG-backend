@@ -9,10 +9,11 @@ const app = express();
 
 const  cors = require('cors');
 const corsOptions = {
-  "origin": "http://localhost:3001",
-  "credentials": true
+  origin: "http://localhost:3001",
+  credentials: true
 }
-app.use(cors(corsOptions));
+
+// app.use(cors(corsOptions));
 
 
 // const allowCrossDomain = function(req, res, next) {
@@ -44,7 +45,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/auth', authRouter);
+app.use('/auth', cors(corsOptions),authRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
