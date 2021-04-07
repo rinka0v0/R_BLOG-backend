@@ -6,26 +6,32 @@ const logger = require('morgan');
 const authRouter = require('./routes/auth');
 const indexRouter = require('./routes/index');
 const app = express();
-const cors = require('cors')
-app.use(cors())
 
-const allowCrossDomain = function(req, res, next) {
-  res.header('Access-Control-Allow-Origin', process.env.APP_URL);
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-  res.header('Access-Control-Allow-Credentials', true);
-  res.header(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, access_token'
-  );
-
-  // intercept OPTIONS method
-  if ('OPTIONS' === req.method) {
-    res.send(200);
-  } else {
-    next();
-  }
+const  cors = require('cors');
+const corsOptions = {
+  origin: process.env.APP_URL,
+  credentials: true
 }
-app.use(allowCrossDomain);
+app.use(cors(corsOptions));
+
+
+// const allowCrossDomain = function(req, res, next) {
+//   res.header('Access-Control-Allow-Origin', process.env.APP_URL);
+//   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+//   res.header('Access-Control-Allow-Credentials', true);
+//   res.header(
+//     'Access-Control-Allow-Headers',
+//     'Content-Type, Authorization, access_token'
+//   );
+
+//   // intercept OPTIONS method
+//   if ('OPTIONS' === req.method) {
+//     res.send(200);
+//   } else {
+//     next();
+//   }
+// }
+// app.use(allowCrossDomain);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
