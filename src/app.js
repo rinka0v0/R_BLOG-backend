@@ -9,7 +9,7 @@ const app = express();
 
 const  cors = require('cors');
 const corsOptions = {
-  "origin": process.env.APP_URL,
+  "origin": "http://localhost:3001",
   "credentials": true
 }
 app.use(cors(corsOptions));
