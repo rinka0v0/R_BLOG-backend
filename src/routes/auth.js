@@ -5,12 +5,30 @@ const mysql = require('mysql');
 const { json } = require('express');
 const cookie = require('cookie');
 
-const  cors = require('cors');
-const corsOptions = {
-  origin: process.env.APP_URL,
-  credentials: true
-}
-router.use(cors(corsOptions));
+// const  cors = require('cors');
+// const corsOptions = {
+//   origin: process.env.APP_URL,
+//   credentials: true
+// }
+// router.use(cors(corsOptions));
+
+const allowCrossDomain = function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', process.env.APP_URL);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, access_token'
+    );
+  
+    // intercept OPTIONS method
+    if ('OPTIONS' === req.method) {
+      res.send(200);
+    } else {
+      next();
+    }
+  }
+  router.use(allowCrossDomain);
 
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
