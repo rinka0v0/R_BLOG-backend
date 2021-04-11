@@ -4,13 +4,26 @@ const jwt = require("jsonwebtoken");
 const mysql = require('mysql');
 const { json } = require('express');
 const cookie = require('cookie');
+const { token } = require('morgan');
 
-const  cors = require('cors');
-const corsOptions = {
-  origin: process.env.APP_URL,
-  credentials: true
+const allowCrossDomain = function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', process.env.APP_URL);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, access_token'
+    );
+  
+    // intercept OPTIONS method
+    if ('OPTIONS' === req.method) {
+      res.send(200);
+    } else {
+      next();
+    }
 }
-router.use(cors(corsOptions));
+
+router.use(allowCrossDomain);
 
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -19,7 +32,7 @@ const con = mysql.createConnection({
     host: process.env.MYSQL_HOST,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
-    port: process.env.MYSQL_PORT,
+    // port: process.env.MYSQL_PORT,
     database: process.env.MYSQL_DATABASE
 });
 
@@ -42,12 +55,13 @@ router.post('/signup', (req, res) => {
                         user_id: result.insertId
                     };
                     const option = {
-                        expiresIn: '24h'
+                        expiresIn: '1m'
                     };
                     jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
-                        res.cookie('token', token, { httpOnly: true });
+                        // res.cookie('token', token, { httpOnly: true });
                         res.status(200).json({
                         user_id: result.insertId,
+                        token: token,
                         });
                     });
                 });
@@ -73,12 +87,13 @@ router.post('/login',(req, res) => {
                     user_id: result[0].id
                 };
                 const option = {
-                    expiresIn: '1h'
+                    expiresIn: '1m'
                 };
                 jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
-                    res.cookie('token', token, { httpOnly: true});
+                    // res.cookie('token', token, { httpOnly: true});
                     res.status(200).json({
                         user_id: result[0].id,
+                        token: token,
                     });
                 });
             }
@@ -86,27 +101,59 @@ router.post('/login',(req, res) => {
     });
 });
 
-// token確認ミドルウェア
+// token確認ミドルウェア(jwtをcookieでhttpOnlyな値として扱う場合)
+// const auth = (req, res, next) => {
+//     const token = req.cookies.token;
+//     if(token) {
+//         //トークンの検証
+//         jwt.verify(token, PRIVATE_KEY, function(err, decoded) {
+//             if (err) {
+//                 return res.status(403).json({
+//                     error: 'Invalid token'
+//                 });
+//             } else {
+//                 req.decoded = decoded;
+//                 next();
+//             }
+//         });
+//     } else {
+//         return res.status(404).json(null).json({
+//             error: 'Not provided token!'
+//         });
+//     }
+// }
+
+// 認証用ミドルウェア(jwtをリクエストヘッダのauthorizationにBearerスキームで送られてくる場合)
 const auth = (req, res, next) => {
-    const token = req.cookies.token;
-    if(token) {
-        //トークンの検証
+    // リクエストヘッダーからトークンの取得
+    if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+        const token = req.headers.authorization.split(' ')[1];
+        if (!token) {
+            return res.status(404).send({
+            message: "No token provided!",
+            token: token
+        });
+        }
+        // トークンの検証
         jwt.verify(token, PRIVATE_KEY, function(err, decoded) {
             if (err) {
+                // 認証NGの場合
                 return res.status(403).json({
                     error: 'Invalid token'
                 });
             } else {
+                // 認証OKの場合
                 req.decoded = decoded;
                 next();
             }
         });
     } else {
-        return res.status(404).json(null).json({
+        return res.status(404).json({
             error: 'Not provided token!'
-        });
+        });;
     }
 }
+
 
 // ユーザー情報確認
 router.get('/me',auth,(req, res) => {
@@ -117,15 +164,15 @@ router.get('/me',auth,(req, res) => {
 });
 
 //ログアウトの処理
-router.get('/logout', auth, (req, res) => {
-    res.clearCookie('token');
-    res.status(200).json({
-        message: 'logout!!'
-    })
-});
+// router.get('/logout', auth, (req, res) => {
+//     res.clearCookie('token');
+//     res.status(200).json({
+//         message: 'logout!!'
+//     })
+// });
 
 // 記事を投稿する処理
-router.post('/post',auth,(req, res) => {
+router.post('/postArticle',auth,(req, res) => {
     const sql = `INSERT INTO blog (title, body, user_id) VALUES (?, ?, ?)`;
     con.connect((err) => {
         con.query(sql,[req.body.title, req.body.data, req.decoded.user_id] ,(err, result, fields) => {
