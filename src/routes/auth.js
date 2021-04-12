@@ -28,21 +28,28 @@ router.use(allowCrossDomain);
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 // MYSQLに接続
-const con = mysql.createConnection({
+// const con = mysql.createConnection({
+//     host: process.env.MYSQL_HOST,
+//     user: process.env.MYSQL_USER,
+//     password: process.env.MYSQL_PASSWORD,
+//     // port: process.env.MYSQL_PORT,
+//     database: process.env.MYSQL_DATABASE
+// });
+
+const pool = mysql.createPool({
     host: process.env.MYSQL_HOST,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
-    // port: process.env.MYSQL_PORT,
     database: process.env.MYSQL_DATABASE
-});
+})
 
 // 新規アカウント作成の処理
 router.post('/signup', (req, res) => {
     const user_name = req.body.name;
     const password = req.body.password;
-    con.connect((err) => {
+    pool.getConnection((err, connection) => {
         const selectSql = "SELECT * FROM user WHERE name = ?";
-        con.query(selectSql, [user_name], (err, result, fields) => {
+        connection.query(selectSql, [user_name], (err, result, fields) => {
             if(result.length) {
                 res.status(422).json({
                     error: 'alredy exist!'
@@ -66,6 +73,7 @@ router.post('/signup', (req, res) => {
                     });
                 });
             }
+            connection.release();
         })
     });
 });
@@ -75,8 +83,8 @@ router.post('/login',(req, res) => {
     const user_name = req.body.name;
     const password = req.body.password;
     const sql = "SELECT * FROM user WHERE name=? AND password=?";
-    con.connect((err) => {
-        con.query(sql,[user_name,password],(err, result, fields) => {
+    pool.getConnection((err, connection) => {
+        connection.query(sql,[user_name,password],(err, result, fields) => {
             if(!result.length) {
                 res.status(404).json({
                     error: 'not found account!!'
@@ -97,6 +105,7 @@ router.post('/login',(req, res) => {
                     });
                 });
             }
+            connection.release();
         });
     });
 });
@@ -168,8 +177,8 @@ router.get('/me',auth,(req, res) => {
 // 記事を投稿する処理
 router.post('/postArticle',auth,(req, res) => {
     const sql = `INSERT INTO blog (title, body, user_id) VALUES (?, ?, ?)`;
-    con.connect((err) => {
-        con.query(sql,[req.body.title, req.body.data, req.decoded.user_id] ,(err, result, fields) => {
+    pool.getConnection((err, connection) => {
+        connection.query(sql,[req.body.title, req.body.data, req.decoded.user_id] ,(err, result, fields) => {
             if(err) {
                 res.json({
                     error: 'failed post'
@@ -179,6 +188,7 @@ router.post('/postArticle',auth,(req, res) => {
                     result: result
                 });
             }
+            connection.release();
         });
     });
 });
@@ -186,8 +196,8 @@ router.post('/postArticle',auth,(req, res) => {
 // コメントを投稿する処理
 router.post('/postComment' , auth, (req, res) => {
     const sql = `INSERT INTO comment ( text, user_id, blog_id) VALUES ( ?, ?, ?)`;
-    con.connect((err) => {
-        con.query(sql,[req.body.text, req.decoded.user_id, req.body.blog_id] ,(err, result, fields) => {
+    pool.getConnection((err, connection) => {
+        connection.query(sql,[req.body.text, req.decoded.user_id, req.body.blog_id] ,(err, result, fields) => {
             if(err) {
                 res.json({
                     error: 'failed post'
@@ -197,15 +207,16 @@ router.post('/postComment' , auth, (req, res) => {
                     result: result
                 });
             }
+            connection.release();
         });
     });
 })
 
 // コメントを取り出す処理  
 router.get('/comment/:id', (req, res) => {
-    con.connect((err) => {
+    pool.getConnection((err, connection) => {
         const sql = "SELECT  comment.id,comment.user_id ,text,comment.created , name FROM comment , user WHERE comment.blog_id=? AND comment.user_id=user.id"
-        con.query(sql,[req.params.id], (err,result, fields) => {
+        connection.query(sql,[req.params.id], (err,result, fields) => {
             if(!result.length) {
                 res.status(404).json({
                     error: 'not found article!!'
@@ -215,15 +226,16 @@ router.get('/comment/:id', (req, res) => {
                     results: result
                 });
             }
+            connection.release();
         })
     })
 })
 
 //コメントを削除する処理  
 router.delete('/comment',auth, (req, res) => {
-    con.connect((err) => {
+    pool.getConnection((err, connection) => {
         const sql = "DELETE FROM comment WHERE id=?"
-        con.query(sql ,[req.body.id], (err,result, fields) => {
+        connection.query(sql ,[req.body.id], (err,result, fields) => {
             if(result.affectedRows === 0) {
                 res.status(404).json({
                     error: 'not found comment!!'
@@ -233,27 +245,29 @@ router.delete('/comment',auth, (req, res) => {
                     message: "delete!!"
                 })
             }
+            connection.release();
         })
     })
 })
 
 // 記事を全て取り出す処理
 router.get('/blogs', (req, res) => {
-    con.connect((err) => {
+    pool.getConnection((err, connection) => {
         const sql = "SELECT blog.id, title, body, name FROM blog, user WHERE blog.user_id=user.id ORDER BY id DESC";
-        con.query(sql, (err, result, fields) => {
+        connection.query(sql, (err, result, fields) => {
             res.json({
                 results: result
             });
+            connection.release();
         });
     });
 });
 
 // 記事を1つ取り出す処理
 router.get('/blogs/:id', (req, res) => {
-    con.connect((err) => {
+    pool.getConnection((err, connection) => {
         const sql = "SELECT * FROM blog WHERE id=?"
-        con.query(sql,[req.params.id], (err,result, fields) => {
+        connection.query(sql,[req.params.id], (err,result, fields) => {
             if(!result.length) {
                 res.status(404).json({
                     error: 'not found article!!'
@@ -263,18 +277,20 @@ router.get('/blogs/:id', (req, res) => {
                     results: result
                 });
             }
+            connection.release();
         })
     })
 })
 
 // 記事を削除する処理
 router.get('/delete/:id' , auth, (req, res) => {
-    con.connect((err) => {
+    pool.getConnection((err, connection) => {
         const sql = "DELETE FROM blog WHERE id=?";
-        con.query(sql,[req.params.id] ,(err, result ,fields) => {
+        connection.query(sql,[req.params.id] ,(err, result ,fields) => {
             res.status(200).json({
                 message: 'deleted!'
             });
+            connection.release();
         });
     });
 });
