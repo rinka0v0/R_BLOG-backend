@@ -9,7 +9,7 @@ const { token } = require('morgan');
 const allowCrossDomain = function(req, res, next) {
     res.header('Access-Control-Allow-Origin', process.env.APP_URL);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-    // res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Credentials', true);
     res.header(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, access_token'
@@ -55,7 +55,7 @@ router.post('/signup', (req, res) => {
                         user_id: result.insertId
                     };
                     const option = {
-                        expiresIn: '1h'
+                        expiresIn: "1h"
                     };
                     jwt.sign(payload,PRIVATE_KEY,option,(err, token) => {
                         // res.cookie('token', token, { httpOnly: true });
@@ -128,12 +128,6 @@ const auth = (req, res, next) => {
     // リクエストヘッダーからトークンの取得
     if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
         const token = req.headers.authorization.split(' ')[1];
-        if (!token) {
-            return res.status(404).send({
-            message: "No token provided!",
-            token: token
-        });
-        }
         // トークンの検証
         jwt.verify(token, PRIVATE_KEY, function(err, decoded) {
             if (err) {
