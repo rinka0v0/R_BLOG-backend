@@ -56,7 +56,7 @@ router.post('/signup', (req, res) => {
                 });
             } else {
                 const insertSql = "INSERT INTO user (name, password) VALUES (?, ?)";
-                con.query(insertSql, [user_name, password], (err, result, fields) => {
+                connection.query(insertSql, [user_name, password], (err, result, fields) => {
                     // jwt発行
                     const payload = {
                         user_id: result.insertId
