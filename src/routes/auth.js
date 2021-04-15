@@ -193,6 +193,24 @@ router.post('/postArticle',auth,(req, res) => {
     });
 });
 
+//記事を更新する処理
+router.put('/article',auth,(req, res) => {
+    const sql = 'UPDATE blog SET title=?, body=?, updated_at=NOW() WHERE id=?';
+    pool.getConnection((err, connection) => {
+        connection.query(sql,[req.body.title,req.body.data,req.body.blog_id],(err, result) => {
+            if(err) {
+                res.json({
+                    error: 'failed edit article'
+                });
+            } else {
+                res.json({
+                    result: result
+                })
+            }
+        })
+    })
+})
+
 // コメントを投稿する処理
 router.post('/postComment' , auth, (req, res) => {
     const sql = `INSERT INTO comment ( text, user_id, blog_id) VALUES ( ?, ?, ?)`;
