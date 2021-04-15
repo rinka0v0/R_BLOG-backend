@@ -25,8 +25,10 @@ const allowCrossDomain = function(req, res, next) {
 
 router.use(allowCrossDomain);
 
+
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
+
 // MYSQLに接続
 // const con = mysql.createConnection({
 //     host: process.env.MYSQL_HOST,
@@ -42,6 +44,14 @@ const pool = mysql.createPool({
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DATABASE
 })
+
+// UTCをJSTへ変換する関数
+const convertJstDate = (time) => {
+    // const time = result[0].created_at;
+    time.setHours(time.getHours() + 9);
+    const createdDate = time.toString().substr(0,15);
+    return createdDate;
+}
 
 // 新規アカウント作成の処理
 router.post('/signup', (req, res) => {
@@ -240,8 +250,13 @@ router.get('/comment/:id', (req, res) => {
                     error: 'not found article!!'
                 });
             }else {
+                const createdDate = result.map((article) => {
+                    const createdTime = convertJstDate(article.created);
+                    return createdTime;
+                })
                 res.status(200).json({
-                    results: result
+                    results: result,
+                    createdDate: createdDate
                 });
             }
             connection.release();
@@ -284,15 +299,18 @@ router.get('/blogs', (req, res) => {
 // 記事を1つ取り出す処理
 router.get('/blogs/:id', (req, res) => {
     pool.getConnection((err, connection) => {
-        const sql = "SELECT * FROM blog WHERE id=?"
+        // const sql = "SELECT * FROM blog WHERE id=?"
+        const sql = "SELECT blog.id, title, body, created_at, updated_at,name FROM blog, user WHERE blog.user_id=user.id AND blog.id=?"
         connection.query(sql,[req.params.id], (err,result, fields) => {
+            const createdDate = convertJstDate(result[0].created_at);
             if(!result.length) {
                 res.status(404).json({
                     error: 'not found article!!'
                 });
             }else {
                 res.status(200).json({
-                    results: result
+                    results: result,
+                    createdDate: createdDate
                 });
             }
             connection.release();
