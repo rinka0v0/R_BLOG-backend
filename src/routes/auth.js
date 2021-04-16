@@ -254,6 +254,9 @@ router.get('/comment/:id', (req, res) => {
                     const createdTime = convertJstDate(article.created);
                     return createdTime;
                 })
+                const commentList = result.map((comment,index) => {
+                    comment.created = createdDate[index]
+                })
                 res.status(200).json({
                     results: result,
                     createdDate: createdDate
