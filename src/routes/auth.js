@@ -303,7 +303,7 @@ router.get('/blogs', (req, res) => {
 router.get('/blogs/:id', (req, res) => {
     pool.getConnection((err, connection) => {
         // const sql = "SELECT * FROM blog WHERE id=?"
-        const sql = "SELECT blog.id, title, body, created_at, updated_at,name FROM blog, user WHERE blog.user_id=user.id AND blog.id=?"
+        const sql = "SELECT blog.id, title, body, blog.user_id,created_at, updated_at,name  FROM blog, user WHERE blog.user_id=user.id AND blog.id=?"
         connection.query(sql,[req.params.id], (err,result, fields) => {
             const createdDate = convertJstDate(result[0].created_at);
             if(!result.length) {
