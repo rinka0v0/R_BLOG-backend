@@ -14,7 +14,6 @@ const allowCrossDomain = function(req, res, next) {
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, access_token'
     );
-  
     // intercept OPTIONS method
     if ('OPTIONS' === req.method) {
       res.send(200);
@@ -176,7 +175,7 @@ router.get('/me',auth,(req, res) => {
     });
 });
 
-//ログアウトの処理
+//ログアウトの処理(cookieを使った認証の場合に使用)
 // router.get('/logout', auth, (req, res) => {
 //     res.clearCookie('token');
 //     res.status(200).json({
@@ -259,7 +258,6 @@ router.get('/comment/:id', (req, res) => {
                 })
                 res.status(200).json({
                     results: result,
-                    createdDate: createdDate
                 });
             }
             connection.release();
@@ -305,15 +303,15 @@ router.get('/blogs/:id', (req, res) => {
         // const sql = "SELECT * FROM blog WHERE id=?"
         const sql = "SELECT blog.id, title, body, blog.user_id,created_at, updated_at,name  FROM blog, user WHERE blog.user_id=user.id AND blog.id=?"
         connection.query(sql,[req.params.id], (err,result, fields) => {
-            const createdDate = convertJstDate(result[0].created_at);
             if(!result.length) {
                 res.status(404).json({
                     error: 'not found article!!'
                 });
             }else {
+                const createdDate = convertJstDate(result[0].created_at);
+                result[0].created_at = createdDate;
                 res.status(200).json({
                     results: result,
-                    createdDate: createdDate
                 });
             }
             connection.release();
