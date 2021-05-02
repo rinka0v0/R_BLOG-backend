@@ -256,13 +256,36 @@ router.post("/like", auth, (req, res) => {
   });
 });
 
-//記事にいいねを削除する処理
+//記事のいいねを削除する処理
 router.delete("/like", auth, (req, res) => {
   const sql = `DELETE FROM likes WHERE blog_id=? AND user_id=?`;
   pool.getConnection((err, connection) => {
     connection.query(
       sql,
       [req.body.blog_id, req.decoded.user_id],
+      (err, result) => {
+        if (err) {
+          res.json({
+            error: "Not found like",
+          });
+        } else {
+          res.json({
+            result: result,
+          });
+        }
+        connection.release();
+      }
+    );
+  });
+});
+
+//記事のいいねの確認
+router.get("/like/:id", auth, (req, res) => {
+  const sql = `SELECT COUNT(likes.id) AS likes_number FROM likes WHERE blog_id=? AND user_id=?`;
+  pool.getConnection((err, connection) => {
+    connection.query(
+      sql,
+      [req.params.id, req.decoded.user_id],
       (err, result) => {
         if (err) {
           res.json({
@@ -352,7 +375,9 @@ router.delete("/comment", auth, (req, res) => {
 router.get("/blogs", (req, res) => {
   pool.getConnection((err, connection) => {
     const sql =
-      "SELECT blog.id, title, body, name FROM blog, user WHERE blog.user_id=user.id ORDER BY id DESC";
+      "SELECT blog.id, blog.title, blog.body ,user.name ,COUNT(likes.id) AS likes_number FROM blog LEFT JOIN user ON blog.user_id = user.id LEFT JOIN likes ON blog.id = likes.blog_id  GROUP BY blog.id ORDER BY blog.id DESC";
+    // const sql =
+    //   "SELECT blog.id, title, body, name FROM blog, user WHERE blog.user_id=user.id ORDER BY id DESC";
     connection.query(sql, (err, result, fields) => {
       res.json({
         results: result,
@@ -363,7 +388,7 @@ router.get("/blogs", (req, res) => {
 });
 
 // 記事を1つ取り出す処理
-router.get("/blogs/:id", (req, res) => {
+router.get("/blogs/:id", auth, (req, res) => {
   pool.getConnection((err, connection) => {
     // const sql = "SELECT * FROM blog WHERE id=?"
     const sql =
