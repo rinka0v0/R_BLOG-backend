@@ -173,11 +173,25 @@ const auth = (req, res, next) => {
   }
 };
 
-// ユーザー情報確認
+// 自分の情報確認
 router.get("/me", auth, (req, res) => {
   res.status(200).json({
     message: `your id is ${req.decoded.user_id}`,
     user_id: req.decoded.user_id,
+  });
+});
+
+// ユーザー情報確認
+router.get("/aboutUser/:user_id", auth, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql =
+      "SELECT user.name, user.id , COUNT(follow.user_id) AS follow_number , COUNT(follower.follow_id) AS follower_number  FROM user LEFT JOIN follows AS follow  ON user.id=follow.user_id LEFT JOIN follows AS follower ON user.id=follower.follow_id  WHERE user.id=?";
+    connection.query(sql, [req.params.user_id], (err, result, fields) => {
+      res.json({
+        results: result,
+      });
+      connection.release();
+    });
   });
 });
 
@@ -377,8 +391,6 @@ router.get("/blogs", (req, res) => {
   pool.getConnection((err, connection) => {
     const sql =
       "SELECT blog.id, blog.title, blog.body ,user.name ,COUNT(likes.id) AS likes_number FROM blog LEFT JOIN user ON blog.user_id = user.id LEFT JOIN likes ON blog.id = likes.blog_id  GROUP BY blog.id ORDER BY blog.id DESC";
-    // const sql =
-    //   "SELECT blog.id, title, body, name FROM blog, user WHERE blog.user_id=user.id ORDER BY id DESC";
     connection.query(sql, (err, result, fields) => {
       res.json({
         results: result,
@@ -391,7 +403,6 @@ router.get("/blogs", (req, res) => {
 // 記事を1つ取り出す処理
 router.get("/blogs/:id", auth, (req, res) => {
   pool.getConnection((err, connection) => {
-    // const sql = "SELECT * FROM blog WHERE id=?"
     const sql =
       "SELECT blog.id, title, body, blog.user_id,created_at, updated_at,name  FROM blog, user WHERE blog.user_id=user.id AND blog.id=?";
     connection.query(sql, [req.params.id], (err, result, fields) => {
@@ -411,6 +422,21 @@ router.get("/blogs/:id", auth, (req, res) => {
   });
 });
 
+// あるユーザーの記事一覧を取得する処理
+router.get("/blogs/user/:userId", auth, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql =
+      "SELECT blog.id , blog.title , blog.body , user.name ,COUNT(likes.id) AS likes_number FROM blog LEFT JOIN user ON blog.user_id = user.id LEFT JOIN likes ON blog.id=likes.blog_id  WHERE blog.user_id=? GROUP BY blog.id ORDER BY blog.id DESC";
+    connection.query(sql, [req.params.userId], (err, result) => {
+      res.json({
+        results: result,
+        userId: req.params.userId,
+      });
+      connection.release();
+    });
+  });
+});
+
 // 記事を削除する処理
 router.get("/delete/:id", auth, (req, res) => {
   pool.getConnection((err, connection) => {
@@ -421,6 +447,80 @@ router.get("/delete/:id", auth, (req, res) => {
       });
       connection.release();
     });
+  });
+});
+
+//フォローする処理
+router.post("/follow", auth, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql = `INSERT INTO follows ( user_id, follow_id) VALUES ( ?, ?)`;
+    connection.query(
+      sql,
+      [req.decoded.user_id, req.body.follow_id],
+      (err, result) => {
+        if (err) {
+          res.json({
+            error: "failed follow",
+          });
+        } else {
+          res.json({
+            result: result,
+          });
+        }
+        connection.release();
+      }
+    );
+  });
+});
+
+//フォローを削除する処理
+router.delete("/follow", auth, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql = "DELETE FROM follows WHERE user_id=? AND follow_id=?";
+    connection.query(
+      sql,
+      [req.decoded.user_id, req.body.follow_id],
+      (err, result) => {
+        if (result.affectedRows === 0) {
+          res.status(404).json({
+            error: "not found follow!!",
+          });
+        } else {
+          res.status(200).json({
+            message: "delete!!",
+          });
+        }
+        if (err) {
+          res.json({
+            error: "somothing  error",
+          });
+        }
+        connection.release();
+      }
+    );
+  });
+});
+
+// フォローしているかの確認
+router.get("/follow/:follow_id", auth, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql = "SELECT COUNT(follows.id) AS follow FROM follows WHERE user_id=? AND follow_id=?";
+    connection.query(
+      sql,
+      [req.decoded.user_id, req.params.follow_id],
+      (err, result) => {
+        if (err) {
+          res.json({
+            error: "Not found follow",
+          });
+        } else {
+          res.json({
+            result: result,
+          });
+        }
+        connection.release();
+      }
+    );
   });
 });
 
