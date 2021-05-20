@@ -185,7 +185,7 @@ router.get("/me", auth, (req, res) => {
 router.get("/aboutUser/:user_id", auth, (req, res) => {
   pool.getConnection((err, connection) => {
     const sql =
-      "SELECT user.name, user.id , COUNT(follow.user_id) AS follow_number , COUNT(follower.follow_id) AS follower_number  FROM user LEFT JOIN follows AS follow  ON user.id=follow.user_id LEFT JOIN follows AS follower ON user.id=follower.follow_id  WHERE user.id=?";
+      "SELECT user.name , user.id , user.profile , COUNT(follow.user_id) AS follow_number , COUNT(follower.follow_id) AS follower_number , profile  FROM user LEFT JOIN follows AS follow  ON user.id=follow.user_id LEFT JOIN follows AS follower ON user.id=follower.follow_id  WHERE user.id=?";
     connection.query(sql, [req.params.user_id], (err, result, fields) => {
       res.json({
         results: result,
@@ -504,7 +504,8 @@ router.delete("/follow", auth, (req, res) => {
 // フォローしているかの確認
 router.get("/follow/:follow_id", auth, (req, res) => {
   pool.getConnection((err, connection) => {
-    const sql = "SELECT COUNT(follows.id) AS follow FROM follows WHERE user_id=? AND follow_id=?";
+    const sql =
+      "SELECT COUNT(follows.id) AS follow FROM follows WHERE user_id=? AND follow_id=?";
     connection.query(
       sql,
       [req.decoded.user_id, req.params.follow_id],
@@ -519,6 +520,28 @@ router.get("/follow/:follow_id", auth, (req, res) => {
           });
         }
         connection.release();
+      }
+    );
+  });
+});
+
+// プロフィールの更新の処理
+router.put("/user", auth, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql = "UPDATE user SET profile=? WHERE id=?";
+    connection.query(
+      sql,
+      [req.body.profile, req.decoded.user_id],
+      (err, result) => {
+        if (err) {
+          res.status(403).json({
+            error: "failed edit profile",
+          });
+        } else {
+          res.json({
+            result: result,
+          });
+        }
       }
     );
   });
