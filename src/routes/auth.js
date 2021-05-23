@@ -52,8 +52,7 @@ const convertJstDate = (time) => {
   return createdDate;
 };
 
-// 新規アカウント作成の処理
-router.post("/signup", (req, res) => {
+const checkAccount = (req, res, next) => {
   const user_name = req.body.name;
   const password = req.body.password;
   pool.getConnection((err, connection) => {
@@ -62,36 +61,82 @@ router.post("/signup", (req, res) => {
       if (result.length !== 0) {
         res.status(422).json({
           error: "alredy exist!",
-          result: result,
         });
       } else {
-        const insertSql = "INSERT INTO user (name, password) VALUES (?, ?)";
-        connection.query(
-          insertSql,
-          [user_name, password],
-          (err, result, fields) => {
-            // jwt発行
-            const payload = {
-              user_id: result.insertId,
-            };
-            const option = {
-              expiresIn: "1h",
-            };
-            jwt.sign(payload, PRIVATE_KEY, option, (err, token) => {
-              // res.cookie('token', token, { httpOnly: true });
-              res.status(200).json({
-                user_id: result.insertId,
-                token: token,
-              });
-            });
-            connection.release();
-          }
-        );
+        next();
       }
       connection.release();
     });
   });
+};
+
+// 新規アカウント作成の処理
+router.post("/signup", checkAccount, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const insertSql = "INSERT INTO user (name, password) VALUES (?, ?)";
+    connection.query(
+      insertSql,
+      [req.body.name, req.body.password],
+      (err, result, fields) => {
+        // jwt発行
+        const payload = {
+          user_id: result.insertId,
+        };
+        const option = {
+          expiresIn: "1h",
+        };
+        jwt.sign(payload, PRIVATE_KEY, option, (err, token) => {
+          res.cookie("token", token, { httpOnly: true });
+          res.status(200).json({
+            user_id: result.insertId,
+            token: token,
+          });
+        });
+        connection.release();
+      }
+    );
+  });
 });
+
+// // 新規アカウント作成の処理
+// router.post("/signup", (req, res) => {
+//   const user_name = req.body.name;
+//   const password = req.body.password;
+//   pool.getConnection((err, connection) => {
+//     const selectSql = "SELECT * FROM user WHERE name = ?";
+//     connection.query(selectSql, [user_name], (err, result, fields) => {
+//       if (result.length !== 0) {
+//         res.status(422).json({
+//           error: "alredy exist!",
+//         });
+//       } else {
+//         const insertSql = "INSERT INTO user (name, password) VALUES (?, ?)";
+//         connection.query(
+//           insertSql,
+//           [user_name, password],
+//           (err, result, fields) => {
+//             // jwt発行
+//             const payload = {
+//               user_id: result.insertId,
+//             };
+//             const option = {
+//               expiresIn: "1h",
+//             };
+//             jwt.sign(payload, PRIVATE_KEY, option, (err, token) => {
+//               // res.cookie('token', token, { httpOnly: true });
+//               res.status(200).json({
+//                 user_id: result.insertId,
+//                 token: token,
+//               });
+//             });
+//             connection.release();
+//           }
+//         );
+//       }
+//       connection.release();
+//     });
+//   });
+// });
 
 // ログイン処理
 router.post("/login", (req, res) => {
