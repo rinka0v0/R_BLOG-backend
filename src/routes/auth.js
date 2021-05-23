@@ -59,9 +59,10 @@ router.post("/signup", (req, res) => {
   pool.getConnection((err, connection) => {
     const selectSql = "SELECT * FROM user WHERE name = ?";
     connection.query(selectSql, [user_name], (err, result, fields) => {
-      if (result.length) {
+      if (result.length !== 0) {
         res.status(422).json({
           error: "alredy exist!",
+          result: result,
         });
       } else {
         const insertSql = "INSERT INTO user (name, password) VALUES (?, ?)";
@@ -83,6 +84,7 @@ router.post("/signup", (req, res) => {
                 token: token,
               });
             });
+            connection.release();
           }
         );
       }
@@ -392,6 +394,35 @@ router.get("/blogs", (req, res) => {
     const sql =
       "SELECT blog.id, blog.title, blog.body ,user.name ,COUNT(likes.id) AS likes_number FROM blog LEFT JOIN user ON blog.user_id = user.id LEFT JOIN likes ON blog.id = likes.blog_id  GROUP BY blog.id ORDER BY blog.id DESC";
     connection.query(sql, (err, result, fields) => {
+      res.json({
+        results: result,
+      });
+      connection.release();
+    });
+  });
+});
+
+//フォローしている人の記事一覧を取得
+router.get("/blogs/follow", auth, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql =
+      "SELECT  blog.id , blog.title , blog.body , user.name ,COUNT(likes.id) AS likes_number FROM (SELECT follow_id  FROM follows WHERE follows.user_id = ?) AS f INNER JOIN blog  ON f.follow_id=blog.user_id LEFT JOIN user ON blog.user_id = user.id LEFT JOIN likes ON blog.id=likes.blog_id GROUP BY blog.id ORDER BY blog.id DESC ";
+    connection.query(sql, [req.decoded.user_id], (err, result) => {
+      res.json({
+        results: result,
+        userId: req.params.userId,
+      });
+      connection.release();
+    });
+  });
+});
+
+//いいねが多い記事の一覧を取得
+router.get("/blogs/like", auth, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql =
+      "SELECT  blog.id , blog.title , blog.body ,l.like_number,user.name FROM blog INNER JOIN (SELECT COUNT(likes.id) AS like_number,likes.blog_id AS blog_id FROM likes GROUP BY likes.blog_id ORDER BY like_number DESC,likes.blog_id DESC LIMIT 6) AS l ON l.blog_id = blog.id  LEFT JOIN user ON blog.user_id = user.id";
+    connection.query(sql, (err, result) => {
       res.json({
         results: result,
       });
