@@ -27,15 +27,6 @@ router.use(allowCrossDomain);
 // 鍵の設定
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
-// MYSQLに接続
-// const con = mysql.createConnection({
-//     host: process.env.MYSQL_HOST,
-//     user: process.env.MYSQL_USER,
-//     password: process.env.MYSQL_PASSWORD,
-//     // port: process.env.MYSQL_PORT,
-//     database: process.env.MYSQL_DATABASE
-// });
-
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
@@ -98,46 +89,6 @@ router.post("/signup", checkAccount, (req, res) => {
   });
 });
 
-// // 新規アカウント作成の処理
-// router.post("/signup", (req, res) => {
-//   const user_name = req.body.name;
-//   const password = req.body.password;
-//   pool.getConnection((err, connection) => {
-//     const selectSql = "SELECT * FROM user WHERE name = ?";
-//     connection.query(selectSql, [user_name], (err, result, fields) => {
-//       if (result.length !== 0) {
-//         res.status(422).json({
-//           error: "alredy exist!",
-//         });
-//       } else {
-//         const insertSql = "INSERT INTO user (name, password) VALUES (?, ?)";
-//         connection.query(
-//           insertSql,
-//           [user_name, password],
-//           (err, result, fields) => {
-//             // jwt発行
-//             const payload = {
-//               user_id: result.insertId,
-//             };
-//             const option = {
-//               expiresIn: "1h",
-//             };
-//             jwt.sign(payload, PRIVATE_KEY, option, (err, token) => {
-//               // res.cookie('token', token, { httpOnly: true });
-//               res.status(200).json({
-//                 user_id: result.insertId,
-//                 token: token,
-//               });
-//             });
-//             connection.release();
-//           }
-//         );
-//       }
-//       connection.release();
-//     });
-//   });
-// });
-
 // ログイン処理
 router.post("/login", (req, res) => {
   const user_name = req.body.name;
@@ -158,7 +109,6 @@ router.post("/login", (req, res) => {
           expiresIn: "1h",
         };
         jwt.sign(payload, PRIVATE_KEY, option, (err, token) => {
-          // res.cookie('token', token, { httpOnly: true});
           res.status(200).json({
             user_id: result[0].id,
             token: token,
@@ -169,28 +119,6 @@ router.post("/login", (req, res) => {
     });
   });
 });
-
-// token確認ミドルウェア(jwtをcookieでhttpOnlyな値として扱う場合)
-// const auth = (req, res, next) => {
-//     const token = req.cookies.token;
-//     if(token) {
-//         //トークンの検証
-//         jwt.verify(token, PRIVATE_KEY, function(err, decoded) {
-//             if (err) {
-//                 return res.status(403).json({
-//                     error: 'Invalid token'
-//                 });
-//             } else {
-//                 req.decoded = decoded;
-//                 next();
-//             }
-//         });
-//     } else {
-//         return res.status(404).json(null).json({
-//             error: 'Not provided token!'
-//         });
-//     }
-// }
 
 // 認証用ミドルウェア(jwtをリクエストヘッダのauthorizationにBearerスキームで送られてくる場合)
 const auth = (req, res, next) => {
@@ -241,14 +169,6 @@ router.get("/aboutUser/:user_id", auth, (req, res) => {
     });
   });
 });
-
-//ログアウトの処理(cookieを使った認証の場合に使用)
-// router.get('/logout', auth, (req, res) => {
-//     res.clearCookie('token');
-//     res.status(200).json({
-//         message: 'logout!!'
-//     })
-// });
 
 // 記事を投稿する処理
 router.post("/postArticle", auth, (req, res) => {
@@ -465,7 +385,7 @@ router.get("/blogs/follow", auth, (req, res) => {
 router.get("/blogs/like", auth, (req, res) => {
   pool.getConnection((err, connection) => {
     const sql =
-      "SELECT  blog.id , blog.title , blog.body ,l.like_number AS likes_number,user.name FROM blog INNER JOIN (SELECT COUNT(likes.id) AS like_number,likes.blog_id AS blog_id FROM likes GROUP BY likes.blog_id ORDER BY like_number DESC,likes.blog_id DESC LIMIT 6) AS l ON l.blog_id = blog.id  LEFT JOIN user ON blog.user_id = user.id";
+      "SELECT  blog.id , blog.title , blog.body ,l.like_number AS likes_number,user.name FROM blog INNER JOIN (SELECT COUNT(likes.id) AS like_number,likes.blog_id AS blog_id FROM likes GROUP BY likes.blog_id ORDER BY like_number DESC,likes.blog_id DESC LIMIT 6) AS l ON l.blog_id = blog.id  LEFT JOIN user ON blog.user_id = user.id GROUP BY blog.id ORDER BY blog.id DESC ";
     connection.query(sql, (err, result) => {
       res.json({
         results: result,
