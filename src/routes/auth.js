@@ -284,75 +284,6 @@ router.get("/like/:id", auth, (req, res) => {
   });
 });
 
-// コメントを投稿する処理
-router.post("/postComment", auth, (req, res) => {
-  const sql = `INSERT INTO comment ( text, user_id, blog_id) VALUES ( ?, ?, ?)`;
-  pool.getConnection((err, connection) => {
-    connection.query(
-      sql,
-      [req.body.text, req.decoded.user_id, req.body.blog_id],
-      (err, result, fields) => {
-        if (err) {
-          res.json({
-            error: "failed post",
-          });
-        } else {
-          res.json({
-            result: result,
-          });
-        }
-        connection.release();
-      }
-    );
-  });
-});
-
-// コメントを取り出す処理
-router.get("/comment/:id", (req, res) => {
-  pool.getConnection((err, connection) => {
-    const sql =
-      "SELECT  comment.id,comment.user_id ,text,comment.created , name FROM comment , user WHERE comment.blog_id=? AND comment.user_id=user.id";
-    connection.query(sql, [req.params.id], (err, result, fields) => {
-      if (!result.length) {
-        res.status(404).json({
-          error: "not found article!!",
-        });
-      } else {
-        const createdDate = result.map((article) => {
-          const createdTime = convertJstDate(article.created);
-          return createdTime;
-        });
-        const commentList = result.map((comment, index) => {
-          comment.created = createdDate[index];
-        });
-        res.status(200).json({
-          results: result,
-        });
-      }
-      connection.release();
-    });
-  });
-});
-
-//コメントを削除する処理
-router.delete("/comment", auth, (req, res) => {
-  pool.getConnection((err, connection) => {
-    const sql = "DELETE FROM comment WHERE id=?";
-    connection.query(sql, [req.body.id], (err, result, fields) => {
-      if (result.affectedRows === 0) {
-        res.status(404).json({
-          error: "not found comment!!",
-        });
-      } else {
-        res.status(200).json({
-          message: "delete!!",
-        });
-      }
-      connection.release();
-    });
-  });
-});
-
 // 記事を全て取り出す処理
 router.get("/blogs", (req, res) => {
   pool.getConnection((err, connection) => {
@@ -433,13 +364,82 @@ router.get("/blogs/user/:userId", auth, (req, res) => {
 });
 
 // 記事を削除する処理
-router.get("/delete/:id", auth, (req, res) => {
+router.delete("/blogs", auth, (req, res) => {
   pool.getConnection((err, connection) => {
     const sql = "DELETE FROM blog WHERE id=?";
-    connection.query(sql, [req.params.id], (err, result, fields) => {
+    connection.query(sql, [req.body.blog_id], (err, result, fields) => {
       res.status(200).json({
         message: "deleted!",
       });
+      connection.release();
+    });
+  });
+});
+
+// コメントを投稿する処理
+router.post("/postComment", auth, (req, res) => {
+  const sql = `INSERT INTO comment ( text, user_id, blog_id) VALUES ( ?, ?, ?)`;
+  pool.getConnection((err, connection) => {
+    connection.query(
+      sql,
+      [req.body.text, req.decoded.user_id, req.body.blog_id],
+      (err, result, fields) => {
+        if (err) {
+          res.json({
+            error: "failed post",
+          });
+        } else {
+          res.json({
+            result: result,
+          });
+        }
+        connection.release();
+      }
+    );
+  });
+});
+
+// コメントを取り出す処理
+router.get("/comment/:id", (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql =
+      "SELECT  comment.id,comment.user_id ,text,comment.created , name FROM comment , user WHERE comment.blog_id=? AND comment.user_id=user.id";
+    connection.query(sql, [req.params.id], (err, result, fields) => {
+      if (!result.length) {
+        res.status(404).json({
+          error: "not found article!!",
+        });
+      } else {
+        const createdDate = result.map((article) => {
+          const createdTime = convertJstDate(article.created);
+          return createdTime;
+        });
+        const commentList = result.map((comment, index) => {
+          comment.created = createdDate[index];
+        });
+        res.status(200).json({
+          results: result,
+        });
+      }
+      connection.release();
+    });
+  });
+});
+
+//コメントを削除する処理
+router.delete("/comment", auth, (req, res) => {
+  pool.getConnection((err, connection) => {
+    const sql = "DELETE FROM comment WHERE id=?";
+    connection.query(sql, [req.body.id], (err, result, fields) => {
+      if (result.affectedRows === 0) {
+        res.status(404).json({
+          error: "not found comment!!",
+        });
+      } else {
+        res.status(200).json({
+          message: "delete!!",
+        });
+      }
       connection.release();
     });
   });
