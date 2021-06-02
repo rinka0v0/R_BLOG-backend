@@ -386,8 +386,6 @@ router.get("/blogs/like", auth, (req, res) => {
   pool.getConnection((err, connection) => {
     const sql =
       "SELECT  blog.id , blog.title , blog.body ,l.like_number AS likes_number,user.name FROM blog INNER JOIN (SELECT COUNT(likes.id) AS like_number,likes.blog_id AS blog_id FROM likes GROUP BY likes.blog_id LIMIT 6) AS l ON l.blog_id = blog.id  LEFT JOIN user ON blog.user_id = user.id GROUP BY blog.id ORDER BY likes_number DESC, blog.id DESC";
-    // const sql =
-    //   "SELECT  blog.id , blog.title , blog.body ,l.like_number AS likes_number,user.name FROM blog INNER JOIN (SELECT COUNT(likes.id) AS like_number,likes.blog_id AS blog_id FROM likes GROUP BY likes.blog_id ORDER BY like_number DESC,likes.blog_id DESC LIMIT 6) AS l ON l.blog_id = blog.id  LEFT JOIN user ON blog.user_id = user.id  ORDER BY blog.id ";
     connection.query(sql, (err, result) => {
       res.json({
         results: result,
